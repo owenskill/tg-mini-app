@@ -1,82 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RaZzMaTaZz Giveaway</title>
-    <!-- Підключаємо Telegram та Lottie плеєр -->
+    <meta charset="UTF-8">
+    <!-- Налаштування для правильного відображення на телефонах -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Розіграш</title>
+    
+    <!-- Підключення бібліотеки Telegram Mini Apps -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    
+    <!-- Підключення плеєра для Lottie анімацій -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
-            background-color: var(--tg-theme-bg-color, #ffffff); 
-            color: var(--tg-theme-text-color, #000000); 
+        /* Стилі, щоб все виглядало гарно і підлаштовувалось під тему Telegram (світлу/темну) */
+        body {
             margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            text-align: center;
         }
-        .player-container { display: flex; justify-content: center; margin: 20px 0; }
-        #status-text { font-size: 20px; font-weight: bold; margin: 20px 0; min-height: 60px; }
-        .btn { 
-            display: none; 
-            width: 90%; 
-            padding: 15px; 
-            margin: 10px auto;
-            border-radius: 12px; 
-            font-size: 18px; 
-            font-weight: bold; 
-            text-decoration: none; 
-            border: none; 
-            cursor: pointer;
-            background: #0088cc; 
-            color: white; 
+
+        #lottie-container {
+            width: 250px;
+            height: 250px;
+            margin-bottom: 20px;
+        }
+
+        #status-text {
+            font-size: 20px;
+            font-weight: 600;
+            padding: 0 20px;
         }
     </style>
 </head>
 <body>
 
-    <div class="player-container">
-        <!-- Стартова анімація перевірки -->
-        <lottie-player id="character" 
-            src="checking.json"  
-            background="transparent" speed="1" style="width: 280px; height: 280px;" loop autoplay>
-        </lottie-player>
-    </div>
-
-    <div id="status-text">Перевіряю підписки...</div>
+    <!-- Тут буде крутитися анімація -->
+    <div id="lottie-container"></div>
     
-    <a href="https://t.me/RaZzMaTaZz_base?boost" id="boost_btn" class="btn">🚀 БУСТАНУТИ КАНАЛ</a>
+    <!-- Тут буде змінюватися текст -->
+    <div id="status-text">Завантаження...</div>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        let textElement = document.getElementById('status-text');
-        let player = document.getElementById('character');
-        let boostBtn = document.getElementById('boost_btn');
+        // Ініціалізація Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Розгортаємо додаток на весь екран
 
-        tg.expand();
+        // Читаємо параметр stage з посилання, яке відправив бот
+        const urlParams = new URLSearchParams(window.location.search);
+        const stage = urlParams.get('stage');
 
-        // Функція зміни станів
-        function updateState(state) {
-            if (state === 'success') {
-                textElement.innerText = "🎉 Вітаю ти береш участь у розіграші";
-                player.load("success.json");
-                boostBtn.style.display = "block";
-            } else if (state === 'already') {
-                textElement.innerText = "✅ Ти вже береш участь у розіграші";
-                player.load("already.json");
-                boostBtn.style.display = "block";
-            } else if (state === 'finished') {
-                textElement.innerText = "⏳ Розіграш завершено";
-                player.load("finished.json");
+        const container = document.getElementById('lottie-container');
+        const textElement = document.getElementById('status-text');
+        let currentAnimation = null;
+
+        // Функція для запуску анімації
+        function playAnimation(fileName, text) {
+            // Якщо вже грає якась анімація - видаляємо її
+            if (currentAnimation) {
+                currentAnimation.destroy();
             }
+            
+            // Змінюємо текст
+            textElement.innerText = text;
+            
+            // Запускаємо нову Lottie анімацію
+            currentAnimation = lottie.loadAnimation({
+                container: container,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                path: fileName // Назва файлу
+            });
         }
 
-        // Імітація перевірки підписки (на 3 секунди)
-        setTimeout(() => {
-            // Тут ми поки просто ставимо 'success' для тесту
-            updateState('success');
-        }, 3000);
+        // Логіка перемикання етапів
+        if (stage === 'welcome') {
+            // 1. Спочатку показуємо "Перевіряю підписки"
+            playAnimation('searching.json', 'Перевіряю підписки...');
+            
+            // 2. Через 2.5 секунди (2500 мілісекунд) змінюємо на "Вітаю"
+            setTimeout(() => {
+                playAnimation('confetti.json', 'Вітаю! Ти береш участь у розіграші 🎊');
+                tg.HapticFeedback.notificationOccurred('success'); // Вібрація успіху
+            }, 2500);
+
+        } else if (stage === 'already_in') {
+            // Якщо людина вже бере участь
+            playAnimation('like.json', 'Ти вже береш участь у розіграші 👍');
+
+        } else if (stage === 'finished') {
+            // Якщо розіграш закінчився
+            playAnimation('indolent evening.json', 'Розіграш завершено 🏆');
+
+        } else {
+            // На випадок непередбаченої помилки
+            playAnimation('searching.json', 'Щось пішло не так...');
+        }
     </script>
+
 </body>
 </html>
