@@ -1,1 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaZzMaTaZz Giveaway</title>
+    <!-- Підключаємо Telegram та Lottie плеєр -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            background-color: var(--tg-theme-bg-color, #ffffff); 
+            color: var(--tg-theme-text-color, #000000); 
+            margin: 0;
+        }
+        .player-container { display: flex; justify-content: center; margin: 20px 0; }
+        #status-text { font-size: 20px; font-weight: bold; margin: 20px 0; min-height: 60px; }
+        .btn { 
+            display: none; 
+            width: 90%; 
+            padding: 15px; 
+            margin: 10px auto;
+            border-radius: 12px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            text-decoration: none; 
+            border: none; 
+            cursor: pointer;
+            background: #0088cc; 
+            color: white; 
+        }
+    </style>
+</head>
+<body>
 
+    <div class="player-container">
+        <!-- Стартова анімація перевірки -->
+        <lottie-player id="character" 
+            src="checking.json"  
+            background="transparent" speed="1" style="width: 280px; height: 280px;" loop autoplay>
+        </lottie-player>
+    </div>
+
+    <div id="status-text">Перевіряю підписки...</div>
+    
+    <a href="https://t.me/RaZzMaTaZz_base?boost" id="boost_btn" class="btn">🚀 БУСТАНУТИ КАНАЛ</a>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        let textElement = document.getElementById('status-text');
+        let player = document.getElementById('character');
+        let boostBtn = document.getElementById('boost_btn');
+
+        tg.expand();
+
+        // Функція зміни станів
+        function updateState(state) {
+            if (state === 'success') {
+                textElement.innerText = "🎉 Вітаю ти береш участь у розіграші";
+                player.load("success.json");
+                boostBtn.style.display = "block";
+            } else if (state === 'already') {
+                textElement.innerText = "✅ Ти вже береш участь у розіграші";
+                player.load("already.json");
+                boostBtn.style.display = "block";
+            } else if (state === 'finished') {
+                textElement.innerText = "⏳ Розіграш завершено";
+                player.load("finished.json");
+            }
+        }
+
+        // Імітація перевірки підписки (на 3 секунди)
+        setTimeout(() => {
+            // Тут ми поки просто ставимо 'success' для тесту
+            updateState('success');
+        }, 3000);
+    </script>
+</body>
+</html>
