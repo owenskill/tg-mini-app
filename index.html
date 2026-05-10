@@ -37,6 +37,12 @@
         }
         #captcha-error { color: #ff595a; font-size: 14px; margin-top: 10px; font-weight: 600; height: 18px; }
 
+        /* 🚀 АНІМАЦІЯ ПЛАВНОГО ВИЇЗДУ КНОПКИ ЗНИЗУ */
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
         .action-button {
             display: none; width: 80%; max-width: 300px;
             background-color: #2a9ad7; color: #ffffff; border: none;
@@ -44,11 +50,23 @@
             cursor: pointer; box-shadow: 0 4px 15px rgba(42, 154, 215, 0.3);
             margin: 0 auto;
         }
+        
+        /* Цей клас додається, коли кнопку треба гарно показати */
+        .animated-show {
+            display: block !important;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
         .action-button:active { transform: scale(0.96); box-shadow: none; }
 
         #skip-btn {
             display: none; background: none; border: none; color: #a2acb5;
             font-size: 16px; font-weight: 600; margin-top: 15px; cursor: pointer; text-decoration: underline;
+        }
+        
+        .animated-show-skip {
+            display: block !important;
+            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
     </style>
 </head>
@@ -106,25 +124,29 @@
             document.getElementById('captcha-input').value = "";
         }
 
-        // 🚀 БЕЗШОВНЕ ПЕРЕМИКАННЯ ЕКРАНУ ТА РЕЄСТРАЦІЯ
         function showFinalScreen() {
             document.getElementById('captcha-wrapper').style.display = "none";
-            document.getElementById('action-btn').style.display = "none";
+            const btn = document.getElementById('action-btn');
+            const skipBtn = document.getElementById('skip-btn');
             
-            // 1. Надсилаємо приховані дані боту для запису в базу (без ngrok!)
+            btn.classList.remove('animated-show');
+            btn.style.display = "none";
+            
+            // 1. Надсилаємо приховані дані боту для запису в базу
             if (cleanDrawId) {
                 tg.sendData("join_" + cleanDrawId);
             }
 
-            // 2. Вмикаємо красивий фінал як на відео
+            // 2. Вмикаємо фінал з анімацією виїзду
             if (isBoost) {
                 currentMode = "boost";
                 play('confetti.json', '🎉 Тепер ви берете участь у розіграші!', 'Підтримайте наш канал та отримайте х3 шанси на перемогу!');
                 
-                const btn = document.getElementById('action-btn');
                 btn.innerHTML = "⚡️ Буст на удачу!";
-                btn.style.display = "block";
-                document.getElementById('skip-btn').style.display = "block";
+                // Додаємо клас, який плавно висуває кнопку знизу
+                btn.classList.add('animated-show');
+                skipBtn.classList.add('animated-show-skip');
+                
                 tg.HapticFeedback.notificationOccurred('success');
             } else {
                 play('confetti.json', '🎉 Ви успішно зареєстровані!');
@@ -148,9 +170,20 @@
                     generateCaptcha(); 
                 }
             } else if (currentMode === "boost") {
-                // Відкриття системного вікна буста
-                tg.openTelegramLink("https://t.me/boost/Ranndommo_bot");
-                tg.close();
+                // 🚀 НАТИВНЕ ВІДКРИТТЯ МЕНЮ БУСТА (БЕЗ ЗАКРИТТЯ АПКИ)
+                // Заміни Ranndommo_bot на юзернейм свого каналу або залиш лінк на бота, якщо він налаштований на буст
+                const boostUrl = "https://t.me/boost/Ranndommo_bot";
+                
+                if (tg.openLink) {
+                    // Метод відкриття всередині Telegram (Instant View / Native Popup)
+                    tg.openLink(boostUrl, { try_instant_view: true });
+                } else {
+                    // Резервний варіант
+                    tg.openTelegramLink(boostUrl);
+                }
+                
+                // Ми навмисно НЕ викликаємо tg.close() одразу, щоб вікно буста з'явилося поверх апки.
+                // Користувач сам закриє вікно або натисне "Пропустити".
             }
         }
 
@@ -166,7 +199,7 @@
                 
                 const btn = document.getElementById('action-btn');
                 btn.innerText = "Підтвердити";
-                btn.style.display = "block";
+                btn.classList.add('animated-show'); // Плавний виїзд кнопки капчі
                 tg.HapticFeedback.notificationOccurred('warning');
             } else {
                 showFinalScreen();
