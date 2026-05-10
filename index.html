@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
     <style>
-        /* Стилі, щоб все виглядало гарно і підлаштовувалось під тему Telegram (світлу/темну) */
+        /* Стилі, щоб все виглядало гарно і підлаштовувалось під тему Telegram */
         body {
             margin: 0;
             padding: 0;
@@ -35,12 +35,57 @@
             font-size: 20px;
             font-weight: 600;
             padding: 0 20px;
+            margin-bottom: 15px;
+            white-space: pre-line;
+        }
+
+        /* --- НОВІ СТИЛІ ДЛЯ ЦИФРОВОЇ КАПЧІ --- */
+        #captcha-wrapper {
+            display: none; /* Приховано, поки не знадобиться */
             margin-bottom: 20px;
         }
 
-        /* Стиль для інтерактивних кнопок (Капча / Буст) */
+        #captcha-display {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 8px;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 15px;
+            border: 2px dashed var(--tg-theme-button-color, #3390ec);
+            user-select: none; /* Щоб не копіювали текст */
+        }
+
+        #captcha-input {
+            width: 160px;
+            padding: 12px;
+            font-size: 20px;
+            text-align: center;
+            border-radius: 10px;
+            border: 2px solid #ccc;
+            outline: none;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-weight: bold;
+        }
+
+        #captcha-input:focus {
+            border-color: var(--tg-theme-button-color, #3390ec);
+        }
+
+        #captcha-error {
+            color: #ff3b30;
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 600;
+            height: 18px;
+        }
+        /* -------------------------------------- */
+
         .action-button {
-            display: none; /* Приховані за замовчуванням */
+            display: none; 
             background-color: var(--tg-theme-button-color, #3390ec);
             color: var(--tg-theme-button-text-color, #ffffff);
             border: none;
@@ -64,55 +109,61 @@
     
     <div id="status-text">Завантаження...</div>
 
+    <div id="captcha-wrapper">
+        <div id="captcha-display">1234</div><br>
+        <input type="number" id="captcha-input" placeholder="Введіть код" maxlength="4"><br>
+        <div id="captcha-error"></div>
+    </div>
     <button id="action-btn" class="action-button" onclick="handleActionClick()">Дія</button>
 
     <script>
-        // Ініціалізація Telegram Web App
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Розгортаємо додаток на весь екран
+        tg.expand(); 
 
         const container = document.getElementById('lottie-container');
         const textElement = document.getElementById('status-text');
         const actionBtn = document.getElementById('action-btn');
         
+        // Змінні для капчі
+        const captchaWrapper = document.getElementById('captcha-wrapper');
+        const captchaDisplay = document.getElementById('captcha-display');
+        const captchaInput = document.getElementById('captcha-input');
+        const captchaError = document.getElementById('captcha-error');
+        
         let currentAnimation = null;
-        let currentMode = "processing"; // Поточний стан взаємодії
+        let currentMode = "processing"; 
+        let generatedCaptchaCode = ""; // Тут зберігатиметься поточний правильний код
 
-        // Функція для запуску Lottie анімації та зміни тексту
         function playAnimation(fileName, text) {
             if (currentAnimation) {
                 currentAnimation.destroy();
             }
-            
             textElement.innerText = text;
-            
             currentAnimation = lottie.loadAnimation({
-                container: container,
-                renderer: 'svg',
-                loop: true,
-                autoplay: true,
+                container: container, renderer: 'svg', loop: true, autoplay: true,
                 path: fileName 
             });
         }
 
-        // ====================================================================
-        // ЗЧИТУВАННЯ ПАРАМЕТРІВ (Підтримуємо і старий stage, і новий startapp)
-        // ====================================================================
         const urlParams = new URLSearchParams(window.location.search);
         const legacyStage = urlParams.get('stage');
-        
-        // Новий рядок налаштувань від нашого Python-бота (наприклад: d12345_c1_b1)
         const startParam = tg.initDataUnsafe?.start_param || "";
 
-        // Визначаємо конфігурацію розіграшу на основі переданих даних
         const isCaptchaRequired = startParam.includes("_c1");
         const isBoostOffered = startParam.includes("_b1");
 
-        // Функція успішного завершення (реєстрації)
+        // Функція генерації нового 4-значного коду
+        function generateNewCaptcha() {
+            generatedCaptchaCode = Math.floor(1000 + Math.random() * 9000).toString();
+            captchaDisplay.innerText = generatedCaptchaCode;
+            captchaInput.value = "";
+        }
+
+        // Успішна реєстрація
         function triggerSuccessRegistration() {
+            captchaWrapper.style.display = "none";
             actionBtn.style.display = "none";
             
-            // Якщо автор увімкнув пропозицію буста
             if (isBoostOffered) {
                 currentMode = "boost";
                 playAnimation('like.json', 'Вітаю! Ти береш участь! 🎊\n\nБажаєш збільшити шанси в 3 рази?');
@@ -120,74 +171,73 @@
                 actionBtn.style.display = "inline-block";
                 tg.HapticFeedback.notificationOccurred('success');
             } else {
-                // Стандартний успішний фінал
                 playAnimation('confetti.json', 'Вітаю! Ти береш участь у розіграші 🎊');
                 tg.HapticFeedback.notificationOccurred('success');
-                
-                // Автоматично закриваємо апку через 3 секунди
                 setTimeout(() => { tg.close(); }, 3000);
             }
         }
 
-        // Обробник натискання на динамічну кнопку
+        // --- БОЙОВА ПЕРЕВІРКА КОДУ ПРИ НАТИСКАННІ ---
         function handleActionClick() {
             tg.HapticFeedback.impactOccurred('medium');
             
             if (currentMode === "captcha") {
-                // Імітація успішного проходження 3D-пазлу/капчі
-                textElement.innerText = "Перевірка капчі...";
-                actionBtn.style.display = "none";
+                const userEnteredCode = captchaInput.value.trim();
                 
-                setTimeout(() => {
-                    triggerSuccessRegistration();
-                }, 1000);
+                // Перевіряємо, чи збігається ввід із кодом
+                if (userEnteredCode === generatedCaptchaCode) {
+                    captchaError.innerText = "";
+                    textElement.innerText = "Код прийнято! ✅";
+                    captchaInput.disabled = true;
+                    actionBtn.style.display = "none";
+                    
+                    setTimeout(() => {
+                        triggerSuccessRegistration();
+                    }, 800);
+                } else {
+                    // Якщо помилка
+                    tg.HapticFeedback.notificationOccurred('error');
+                    captchaError.innerText = "❌ Невірний код! Спробуйте ще раз.";
+                    generateNewCaptcha(); // Одразу даємо нові цифри
+                }
                 
             } else if (currentMode === "boost") {
-                // Відкриваємо офіційне вікно буста каналу в Телеграмі
-                // (ID каналу можна витягти з параметра, тут відкриваємо загальне посилання)
                 tg.openTelegramLink("https://t.me/boost/Ranndommo_bot");
                 tg.close();
             }
         }
 
-        // ====================================================================
-        // ГОЛОВНА ЛОГІКА ВІДОБРАЖЕННЯ
-        // ====================================================================
+        // Головна логіка
         if (startParam) {
-            // 1. Старт: перевірка умов участi
             playAnimation('searching.json', 'Перевіряю умови участі...');
 
             setTimeout(() => {
-                // 2. Якщо потрібна капча — зупиняємось і вимагаємо дії
                 if (isCaptchaRequired) {
                     currentMode = "captcha";
-                    // Використовуємо файл like.json як тимчасову заглушку для інтерактиву
-                    playAnimation('like.json', '🧩 Склади пазл (Капча), щоб підтвердити, що ти не бот:');
-                    actionBtn.innerText = "✓ Пройти перевірку";
+                    playAnimation('like.json', 'Введіть цифри з поля нижче, щоб підтвердити, що ви не бот:');
+                    
+                    generateNewCaptcha(); // Створюємо код
+                    captchaWrapper.style.display = "block"; // Показуємо поле
+                    
+                    actionBtn.innerText = "✓ Підтвердити";
                     actionBtn.style.display = "inline-block";
                     tg.HapticFeedback.notificationOccurred('warning');
                 } else {
-                    // Якщо капча не потрібна — одразу реєструємо
                     triggerSuccessRegistration();
                 }
             }, 2000);
 
         } else if (legacyStage === 'welcome') {
-            // Підтримка старих посилань (без параметрів)
             playAnimation('searching.json', 'Перевіряю підписки...');
             setTimeout(() => {
                 playAnimation('confetti.json', 'Вітаю! Ти береш участь у розіграші 🎊');
                 tg.HapticFeedback.notificationOccurred('success');
             }, 2500);
-
         } else if (legacyStage === 'already_in') {
             playAnimation('like.json', 'Ти вже береш участь у розіграші 👍');
-
         } else if (legacyStage === 'finished') {
             playAnimation('indolent evening.json', 'Розіграш завершено 🏆');
-
         } else {
-            // Базове завантаження, якщо параметрів немає
             playAnimation('searching.json', 'Завантаження розіграшу...');
         }
     </script>
