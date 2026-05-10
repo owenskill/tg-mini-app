@@ -21,7 +21,6 @@
         #status-text { font-size: 22px; font-weight: 700; padding: 0 20px; margin-bottom: 8px; line-height: 1.3; }
         #sub-text { font-size: 15px; color: #a2acb5; padding: 0 30px; margin-bottom: 25px; display: none; line-height: 1.4; }
 
-        /* Капча прихована під час першої анімації */
         #captcha-wrapper { display: none; margin-bottom: 20px; width: 100%; }
         #captcha-display {
             font-size: 32px; font-weight: 900; letter-spacing: 12px;
@@ -69,9 +68,6 @@
     <button id="skip-btn" onclick="tg.close()">Пропустити</button>
 
     <script>
-        // 🚀 ТВОЄ АКТИВНЕ ПОСИЛАННЯ NGROK ВЖЕ ТУТ:
-        const SERVER_URL = "https://unsealed-engross-mutation.ngrok-free.dev";
-
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
@@ -110,27 +106,17 @@
             document.getElementById('captcha-input').value = "";
         }
 
-        // Фонове надсилання запиту на реєстрацію через твій ngrok
-        async function silentRegister() {
-            const userId = tg.initDataUnsafe?.user?.id;
-            const firstName = tg.initDataUnsafe?.user?.first_name || "Учасник";
-            if (!userId) return;
-            
-            try {
-                await fetch(`${SERVER_URL}/register?user_id=${userId}&draw_id=${cleanDrawId}&name=${encodeURIComponent(firstName)}`);
-            } catch (e) {
-                console.error("Помилка фонового запиту:", e);
-            }
-        }
-
-        // Перемикання на фінальний екран (як на відео)
-        async function showFinalScreen() {
+        // 🚀 БЕЗШОВНЕ ПЕРЕМИКАННЯ ЕКРАНУ ТА РЕЄСТРАЦІЯ
+        function showFinalScreen() {
             document.getElementById('captcha-wrapper').style.display = "none";
             document.getElementById('action-btn').style.display = "none";
             
-            // Записуємо в базу
-            await silentRegister();
+            // 1. Надсилаємо приховані дані боту для запису в базу (без ngrok!)
+            if (cleanDrawId) {
+                tg.sendData("join_" + cleanDrawId);
+            }
 
+            // 2. Вмикаємо красивий фінал як на відео
             if (isBoost) {
                 currentMode = "boost";
                 play('confetti.json', '🎉 Тепер ви берете участь у розіграші!', 'Підтримайте наш канал та отримайте х3 шанси на перемогу!');
@@ -162,13 +148,13 @@
                     generateCaptcha(); 
                 }
             } else if (currentMode === "boost") {
-                // Відкриття вікна буста
+                // Відкриття системного вікна буста
                 tg.openTelegramLink("https://t.me/boost/Ranndommo_bot");
                 tg.close();
             }
         }
 
-        // --- СТАРТ: Анімація триває 3.5 секунди ---
+        // --- СТАРТ: Затримка анімації 3.5 секунди ---
         play('searching.json', 'Перевірка умов...');
         
         setTimeout(() => {
