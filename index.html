@@ -9,75 +9,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
     <style>
-        /* 🎨 ІДЕАЛЬНЕ КОПІЮВАННЯ ДИЗАЙНУ З ВІДЕО */
         body {
             margin: 0; padding: 0; display: flex; flex-direction: column;
             justify-content: center; align-items: center; height: 100vh;
-            background-color: var(--tg-theme-bg-color, #18222d);
-            color: var(--tg-theme-text-color, #ffffff);
+            background-color: #18222d; color: #ffffff;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            text-align: center;
-            overflow: hidden;
-            transition: background-color 0.3s ease;
+            text-align: center; overflow: hidden;
         }
 
-        #lottie-container { 
-            width: 180px; height: 180px; margin-bottom: 15px; 
-            transition: transform 0.3s ease;
-        }
+        #lottie-container { width: 180px; height: 180px; margin-bottom: 15px; }
+        #status-text { font-size: 22px; font-weight: 700; padding: 0 20px; margin-bottom: 8px; line-height: 1.3; }
+        #sub-text { font-size: 15px; color: #a2acb5; padding: 0 30px; margin-bottom: 25px; display: none; line-height: 1.4; }
 
-        #status-text { 
-            font-size: 22px; font-weight: 700; padding: 0 20px; 
-            margin-bottom: 8px; line-height: 1.3;
-        }
-
-        #sub-text {
-            font-size: 15px; color: var(--tg-theme-hint-color, #a2acb5);
-            padding: 0 30px; margin-bottom: 25px; line-height: 1.4;
-            display: none; /* Вмикається тільки для етапу буста */
-        }
-
-        /* --- СТИЛІ ПОЛЯ КАПЧІ --- */
-        #captcha-wrapper { margin-bottom: 20px; width: 100%; }
-        
+        /* Капча прихована під час першої анімації */
+        #captcha-wrapper { display: none; margin-bottom: 20px; width: 100%; }
         #captcha-display {
             font-size: 32px; font-weight: 900; letter-spacing: 12px;
-            background-color: rgba(0, 0, 0, 0.2);
-            padding: 12px 25px; border-radius: 12px; display: inline-block;
-            margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: rgba(0, 0, 0, 0.2); padding: 12px 25px; border-radius: 12px;
+            display: inline-block; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
             user-select: none;
         }
-
         #captcha-input {
             width: 180px; padding: 15px; font-size: 22px; text-align: center;
-            border-radius: 12px; border: 2px solid var(--tg-theme-button-color, #2a9ad7);
-            outline: none; background-color: var(--tg-theme-secondary-bg-color, #233040);
-            color: var(--tg-theme-text-color, #ffffff); font-weight: bold;
+            border-radius: 12px; border: 2px solid #2a9ad7; outline: none;
+            background-color: #233040; color: #ffffff; font-weight: bold;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: all 0.2s ease;
         }
-        #captcha-input:focus { transform: scale(1.05); }
         #captcha-error { color: #ff595a; font-size: 14px; margin-top: 10px; font-weight: 600; height: 18px; }
 
-        /* --- ФІРМОВІ КНОПКИ ТЕЛЕГРАМУ (ЯК НА ВІДЕО) --- */
         .action-button {
             display: none; width: 80%; max-width: 300px;
-            background-color: var(--tg-theme-button-color, #2a9ad7);
-            color: var(--tg-theme-button-text-color, #ffffff); border: none;
+            background-color: #2a9ad7; color: #ffffff; border: none;
             border-radius: 12px; padding: 16px 20px; font-size: 18px; font-weight: 700;
             cursor: pointer; box-shadow: 0 4px 15px rgba(42, 154, 215, 0.3);
-            transition: all 0.1s ease;
-            display: flex; justify-content: center; align-items: center; gap: 8px;
             margin: 0 auto;
         }
         .action-button:active { transform: scale(0.96); box-shadow: none; }
 
-        /* Окрема кнопка для пропуску буста */
         #skip-btn {
-            display: none; background: none; border: none;
-            color: var(--tg-theme-hint-color, #a2acb5); font-size: 16px; font-weight: 600;
-            margin-top: 15px; cursor: pointer; text-decoration: underline;
+            display: none; background: none; border: none; color: #a2acb5;
+            font-size: 16px; font-weight: 600; margin-top: 15px; cursor: pointer; text-decoration: underline;
         }
     </style>
 </head>
@@ -93,79 +65,83 @@
         <div id="captcha-error"></div>
     </div>
 
-    <button id="action-btn" class="action-button" onclick="handleActionClick()">Дія</button>
+    <button id="action-btn" class="action-button" onclick="handleActionClick()">Підтвердити</button>
     <button id="skip-btn" onclick="tg.close()">Пропустити</button>
 
     <script>
+        // 🚀 ТВОЄ АКТИВНЕ ПОСИЛАННЯ NGROK ВЖЕ ТУТ:
+        const SERVER_URL = "https://unsealed-engross-mutation.ngrok-free.dev";
+
         const tg = window.Telegram.WebApp;
-        tg.expand(); 
+        tg.ready();
+        tg.expand();
 
-        const container = document.getElementById('lottie-container');
-        const textElement = document.getElementById('status-text');
-        const subTextElement = document.getElementById('sub-text');
-        const actionBtn = document.getElementById('action-btn');
-        const skipBtn = document.getElementById('skip-btn');
-        
-        const captchaWrapper = document.getElementById('captcha-wrapper');
-        const captchaDisplay = document.getElementById('captcha-display');
-        const captchaInput = document.getElementById('captcha-input');
-        const captchaError = document.getElementById('captcha-error');
-        
         let currentAnimation = null;
-        let currentMode = "processing"; 
-        let generatedCaptchaCode = ""; 
-
-        function playAnimation(fileName, text, subText = "") {
-            if (currentAnimation) currentAnimation.destroy();
-            
-            textElement.innerText = text;
-            if (subText) {
-                subTextElement.innerText = subText;
-                subTextElement.style.display = "block";
-            } else {
-                subTextElement.style.display = "none";
-            }
-
-            currentAnimation = lottie.loadAnimation({
-                container: container, renderer: 'svg', loop: true, autoplay: true, path: fileName 
-            });
-        }
+        let currentMode = "loading";
+        let generatedCode = "";
 
         const urlParams = new URLSearchParams(window.location.search);
         const startParam = tg.initDataUnsafe?.start_param || "";
-
-        const isCaptchaRequired = startParam.includes("_c1");
-        const isBoostOffered = startParam.includes("_b1");
         const cleanDrawId = startParam.split("_")[0];
+        const isCaptcha = startParam.includes("_c1");
+        const isBoost = startParam.includes("_b1");
 
-        function generateNewCaptcha() {
-            generatedCaptchaCode = Math.floor(1000 + Math.random() * 9000).toString();
-            captchaDisplay.innerText = generatedCaptchaCode;
-            captchaInput.value = "";
+        function play(fileName, text, subText = "") {
+            if (currentAnimation) currentAnimation.destroy();
+            
+            document.getElementById('status-text').innerText = text;
+            const subElem = document.getElementById('sub-text');
+            if (subText) {
+                subElem.innerText = subText;
+                subElem.style.display = "block";
+            } else {
+                subElem.style.display = "none";
+            }
+
+            currentAnimation = lottie.loadAnimation({
+                container: document.getElementById('lottie-container'),
+                renderer: 'svg', loop: true, autoplay: true, path: fileName 
+            });
         }
 
-        // 🚀 КРОК 2: ІДЕАЛЬНИЙ ЕКРАН УСПІХУ ТА БУСТА (ЯК НА ВІДЕО)
-        function showSuccessAndBoostScreen() {
-            captchaWrapper.style.display = "none";
+        function generateCaptcha() {
+            generatedCode = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('captcha-display').innerText = generatedCode;
+            document.getElementById('captcha-input').value = "";
+        }
+
+        // Фонове надсилання запиту на реєстрацію через твій ngrok
+        async function silentRegister() {
+            const userId = tg.initDataUnsafe?.user?.id;
+            const firstName = tg.initDataUnsafe?.user?.first_name || "Учасник";
+            if (!userId) return;
             
-            // 1. Спочатку реєструємо юзера в базі через фонове відкриття лінка (без виходу з апки)
-            // Ми використовуємо прихований метод Телеграму або просто імітуємо перехід
-            tg.sendData("join_" + cleanDrawId); // Альтернативний надійний сигнал
+            try {
+                await fetch(`${SERVER_URL}/register?user_id=${userId}&draw_id=${cleanDrawId}&name=${encodeURIComponent(firstName)}`);
+            } catch (e) {
+                console.error("Помилка фонового запиту:", e);
+            }
+        }
+
+        // Перемикання на фінальний екран (як на відео)
+        async function showFinalScreen() {
+            document.getElementById('captcha-wrapper').style.display = "none";
+            document.getElementById('action-btn').style.display = "none";
             
-            // 2. Вмикаємо екран із відеозапису
-            if (isBoostOffered) {
-                currentMode = "do_boost";
-                // Використовуємо красиву анімацію подарунка або конфеті
-                playAnimation('confetti.json', '🎉 Тепер ви берете участь у розіграші!', 'Підтримайте наш канал та отримайте х3 шанси на перемогу!');
+            // Записуємо в базу
+            await silentRegister();
+
+            if (isBoost) {
+                currentMode = "boost";
+                play('confetti.json', '🎉 Тепер ви берете участь у розіграші!', 'Підтримайте наш канал та отримайте х3 шанси на перемогу!');
                 
-                actionBtn.innerHTML = "⚡️ Буст на удачу!";
-                actionBtn.style.display = "flex";
-                skipBtn.style.display = "block"; // Додаємо кнопку "Пропустити"
+                const btn = document.getElementById('action-btn');
+                btn.innerHTML = "⚡️ Буст на удачу!";
+                btn.style.display = "block";
+                document.getElementById('skip-btn').style.display = "block";
                 tg.HapticFeedback.notificationOccurred('success');
             } else {
-                // Якщо буст не потрібен — просто радісний фінал
-                playAnimation('confetti.json', '🎉 Ви успішно зареєстровані!');
-                actionBtn.style.display = "none";
+                play('confetti.json', '🎉 Ви успішно зареєстровані!');
                 tg.HapticFeedback.notificationOccurred('success');
                 setTimeout(() => { tg.close(); }, 2500);
             }
@@ -175,48 +151,41 @@
             tg.HapticFeedback.impactOccurred('medium');
             
             if (currentMode === "captcha") {
-                if (captchaInput.value.trim() === generatedCaptchaCode) {
-                    captchaError.innerText = "";
-                    captchaInput.disabled = true;
-                    actionBtn.style.display = "none";
-                    
-                    // Плавний перехід на екран успіху
-                    setTimeout(() => { showSuccessAndBoostScreen(); }, 500);
+                const inputVal = document.getElementById('captcha-input').value.trim();
+                if (inputVal === generatedCode) {
+                    document.getElementById('captcha-error').innerText = "";
+                    document.getElementById('captcha-input').disabled = true;
+                    showFinalScreen();
                 } else {
                     tg.HapticFeedback.notificationOccurred('error');
-                    captchaError.innerText = "❌ Неправильний код";
-                    generateNewCaptcha(); 
+                    document.getElementById('captcha-error').innerText = "❌ Неправильний код";
+                    generateCaptcha(); 
                 }
-            } else if (currentMode === "do_boost") {
-                // 🚀 Викликаємо системне вікно буста і закриваємо апку
+            } else if (currentMode === "boost") {
+                // Відкриття вікна буста
                 tg.openTelegramLink("https://t.me/boost/Ranndommo_bot");
-                tg.close();
-            } else if (currentMode === "join_only") {
-                tg.openTelegramLink("https://t.me/Ranndommo_bot?start=join_" + cleanDrawId);
                 tg.close();
             }
         }
 
-        // --- СТАРТ АПКИ ---
-        if (startParam) {
-            playAnimation('searching.json', 'Перевірка умов...');
-            setTimeout(() => {
-                if (isCaptchaRequired) {
-                    currentMode = "captcha";
-                    playAnimation('like.json', 'Підтвердіть, що ви не бот:');
-                    generateNewCaptcha(); 
-                    captchaWrapper.style.display = "block"; 
-                    actionBtn.innerText = "Підтвердити";
-                    actionBtn.style.display = "flex";
-                    tg.HapticFeedback.notificationOccurred('warning');
-                } else {
-                    // Якщо капчі немає, одразу показуємо екран успіху/буста
-                    showSuccessAndBoostScreen();
-                }
-            }, 1500);
-        } else {
-            playAnimation('searching.json', 'Завантаження...');
-        }
+        // --- СТАРТ: Анімація триває 3.5 секунди ---
+        play('searching.json', 'Перевірка умов...');
+        
+        setTimeout(() => {
+            if (isCaptcha) {
+                currentMode = "captcha";
+                play('like.json', 'Підтвердіть, що ви не бот:');
+                generateCaptcha(); 
+                document.getElementById('captcha-wrapper').style.display = "block"; 
+                
+                const btn = document.getElementById('action-btn');
+                btn.innerText = "Підтвердити";
+                btn.style.display = "block";
+                tg.HapticFeedback.notificationOccurred('warning');
+            } else {
+                showFinalScreen();
+            }
+        }, 3500);
     </script>
 </body>
 </html>
