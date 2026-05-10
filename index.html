@@ -6,107 +6,49 @@
     <title>Розіграш</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
     <style>
-        /* Стилі, щоб все виглядало гарно і підлаштовувалось під тему Telegram */
         body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            margin: 0; padding: 0; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; height: 100vh;
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             text-align: center;
         }
+        #lottie-container { width: 250px; height: 250px; margin-bottom: 20px; }
+        #status-text { font-size: 20px; font-weight: 600; padding: 0 20px; margin-bottom: 15px; white-space: pre-line; }
 
-        #lottie-container {
-            width: 250px;
-            height: 250px;
-            margin-bottom: 20px;
-        }
-
-        #status-text {
-            font-size: 20px;
-            font-weight: 600;
-            padding: 0 20px;
-            margin-bottom: 15px;
-            white-space: pre-line;
-        }
-
-        /* --- НОВІ СТИЛІ ДЛЯ ЦИФРОВОЇ КАПЧІ --- */
-        #captcha-wrapper {
-            display: none; /* Приховано, поки не знадобиться */
-            margin-bottom: 20px;
-        }
-
+        #captcha-wrapper { display: none; margin-bottom: 20px; }
         #captcha-display {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: 8px;
+            font-size: 28px; font-weight: 800; letter-spacing: 8px;
             background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            padding: 10px 20px;
-            border-radius: 8px;
-            display: inline-block;
-            margin-bottom: 15px;
-            border: 2px dashed var(--tg-theme-button-color, #3390ec);
-            user-select: none; /* Щоб не копіювали текст */
+            padding: 10px 20px; border-radius: 8px; display: inline-block;
+            margin-bottom: 15px; border: 2px dashed var(--tg-theme-button-color, #3390ec);
+            user-select: none;
         }
-
         #captcha-input {
-            width: 160px;
-            padding: 12px;
-            font-size: 20px;
-            text-align: center;
-            border-radius: 10px;
-            border: 2px solid #ccc;
-            outline: none;
+            width: 160px; padding: 12px; font-size: 20px; text-align: center;
+            border-radius: 10px; border: 2px solid #ccc; outline: none;
             background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            font-weight: bold;
+            color: var(--tg-theme-text-color, #000000); font-weight: bold;
         }
-
-        #captcha-input:focus {
-            border-color: var(--tg-theme-button-color, #3390ec);
-        }
-
-        #captcha-error {
-            color: #ff3b30;
-            font-size: 14px;
-            margin-top: 8px;
-            font-weight: 600;
-            height: 18px;
-        }
-        /* -------------------------------------- */
+        #captcha-input:focus { border-color: var(--tg-theme-button-color, #3390ec); }
+        #captcha-error { color: #ff3b30; font-size: 14px; margin-top: 8px; font-weight: 600; height: 18px; }
 
         .action-button {
-            display: none; 
-            background-color: var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border: none;
-            border-radius: 12px;
-            padding: 14px 28px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.1s ease;
+            display: none; background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff); border: none;
+            border-radius: 12px; padding: 14px 28px; font-size: 18px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-
-        .action-button:active {
-            transform: scale(0.96);
-        }
+        .action-button:active { transform: scale(0.96); }
     </style>
 </head>
 <body>
 
     <div id="lottie-container"></div>
-    
     <div id="status-text">Завантаження...</div>
 
     <div id="captcha-wrapper">
@@ -114,6 +56,7 @@
         <input type="number" id="captcha-input" placeholder="Введіть код" maxlength="4"><br>
         <div id="captcha-error"></div>
     </div>
+
     <button id="action-btn" class="action-button" onclick="handleActionClick()">Дія</button>
 
     <script>
@@ -124,7 +67,6 @@
         const textElement = document.getElementById('status-text');
         const actionBtn = document.getElementById('action-btn');
         
-        // Змінні для капчі
         const captchaWrapper = document.getElementById('captcha-wrapper');
         const captchaDisplay = document.getElementById('captcha-display');
         const captchaInput = document.getElementById('captcha-input');
@@ -132,16 +74,13 @@
         
         let currentAnimation = null;
         let currentMode = "processing"; 
-        let generatedCaptchaCode = ""; // Тут зберігатиметься поточний правильний код
+        let generatedCaptchaCode = ""; 
 
         function playAnimation(fileName, text) {
-            if (currentAnimation) {
-                currentAnimation.destroy();
-            }
+            if (currentAnimation) currentAnimation.destroy();
             textElement.innerText = text;
             currentAnimation = lottie.loadAnimation({
-                container: container, renderer: 'svg', loop: true, autoplay: true,
-                path: fileName 
+                container: container, renderer: 'svg', loop: true, autoplay: true, path: fileName 
             });
         }
 
@@ -152,73 +91,62 @@
         const isCaptchaRequired = startParam.includes("_c1");
         const isBoostOffered = startParam.includes("_b1");
 
-        // Функція генерації нового 4-значного коду
+        // Дістаємо чистий ID конкурсу для магічного лінка (наприклад: "d12345")
+        const cleanDrawId = startParam.split("_")[0];
+
         function generateNewCaptcha() {
             generatedCaptchaCode = Math.floor(1000 + Math.random() * 9000).toString();
             captchaDisplay.innerText = generatedCaptchaCode;
             captchaInput.value = "";
         }
 
-        // Успішна реєстрація
+        // 🚀 ОНОВЛЕНИЙ ФІНАЛ: Перекидаємо юзера в бота для запису в базу
         function triggerSuccessRegistration() {
             captchaWrapper.style.display = "none";
-            actionBtn.style.display = "none";
+            currentMode = "register_in_bot";
             
             if (isBoostOffered) {
-                currentMode = "boost";
-                playAnimation('like.json', 'Вітаю! Ти береш участь! 🎊\n\nБажаєш збільшити шанси в 3 рази?');
-                actionBtn.innerText = "🚀 Забустити канал";
-                actionBtn.style.display = "inline-block";
-                tg.HapticFeedback.notificationOccurred('success');
+                playAnimation('like.json', '🎊 Код прийнято!\n\nБажаєш збільшити шанси в 3 рази?');
+                actionBtn.innerText = "🚀 Забустити та Зареєструватись";
             } else {
-                playAnimation('confetti.json', 'Вітаю! Ти береш участь у розіграші 🎊');
-                tg.HapticFeedback.notificationOccurred('success');
-                setTimeout(() => { tg.close(); }, 3000);
+                playAnimation('confetti.json', '🎊 Майже готово!\n\nПідтверди участь у боті:');
+                actionBtn.innerText = "🎁 Підтвердити участь";
             }
+            
+            actionBtn.style.display = "inline-block";
+            tg.HapticFeedback.notificationOccurred('success');
         }
 
-        // --- БОЙОВА ПЕРЕВІРКА КОДУ ПРИ НАТИСКАННІ ---
         function handleActionClick() {
             tg.HapticFeedback.impactOccurred('medium');
             
             if (currentMode === "captcha") {
-                const userEnteredCode = captchaInput.value.trim();
-                
-                // Перевіряємо, чи збігається ввід із кодом
-                if (userEnteredCode === generatedCaptchaCode) {
+                if (captchaInput.value.trim() === generatedCaptchaCode) {
                     captchaError.innerText = "";
                     textElement.innerText = "Код прийнято! ✅";
                     captchaInput.disabled = true;
                     actionBtn.style.display = "none";
-                    
-                    setTimeout(() => {
-                        triggerSuccessRegistration();
-                    }, 800);
+                    setTimeout(() => { triggerSuccessRegistration(); }, 800);
                 } else {
-                    // Якщо помилка
                     tg.HapticFeedback.notificationOccurred('error');
-                    captchaError.innerText = "❌ Невірний код! Спробуйте ще раз.";
-                    generateNewCaptcha(); // Одразу даємо нові цифри
+                    captchaError.innerText = "❌ Невірний код!";
+                    generateNewCaptcha(); 
                 }
-                
-            } else if (currentMode === "boost") {
-                tg.openTelegramLink("https://t.me/boost/Ranndommo_bot");
+            } else if (currentMode === "register_in_bot") {
+                // 🚀 ТУТ ВІДБУВАЄТЬСЯ МАГІЯ: Відкриваємо бота з командою реєстрації
+                tg.openTelegramLink("https://t.me/Ranndommo_bot?start=join_" + cleanDrawId);
                 tg.close();
             }
         }
 
-        // Головна логіка
         if (startParam) {
             playAnimation('searching.json', 'Перевіряю умови участі...');
-
             setTimeout(() => {
                 if (isCaptchaRequired) {
                     currentMode = "captcha";
-                    playAnimation('like.json', 'Введіть цифри з поля нижче, щоб підтвердити, що ви не бот:');
-                    
-                    generateNewCaptcha(); // Створюємо код
-                    captchaWrapper.style.display = "block"; // Показуємо поле
-                    
+                    playAnimation('like.json', 'Введіть цифри, щоб підтвердити, що ви не бот:');
+                    generateNewCaptcha(); 
+                    captchaWrapper.style.display = "block"; 
                     actionBtn.innerText = "✓ Підтвердити";
                     actionBtn.style.display = "inline-block";
                     tg.HapticFeedback.notificationOccurred('warning');
@@ -226,21 +154,12 @@
                     triggerSuccessRegistration();
                 }
             }, 2000);
-
         } else if (legacyStage === 'welcome') {
             playAnimation('searching.json', 'Перевіряю підписки...');
-            setTimeout(() => {
-                playAnimation('confetti.json', 'Вітаю! Ти береш участь у розіграші 🎊');
-                tg.HapticFeedback.notificationOccurred('success');
-            }, 2500);
-        } else if (legacyStage === 'already_in') {
-            playAnimation('like.json', 'Ти вже береш участь у розіграші 👍');
-        } else if (legacyStage === 'finished') {
-            playAnimation('indolent evening.json', 'Розіграш завершено 🏆');
+            setTimeout(() => { playAnimation('confetti.json', 'Вітаю! 🎊'); }, 2500);
         } else {
-            playAnimation('searching.json', 'Завантаження розіграшу...');
+            playAnimation('searching.json', 'Завантаження...');
         }
     </script>
-
 </body>
 </html>
