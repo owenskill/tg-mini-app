@@ -2,14 +2,11 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <!-- Налаштування для правильного відображення на телефонах -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Розіграш</title>
     
-    <!-- Підключення бібліотеки Telegram Mini Apps -->
-    <<script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- Підключення плеєра для Lottie анімацій -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
     <style>
@@ -38,72 +35,160 @@
             font-size: 20px;
             font-weight: 600;
             padding: 0 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Стиль для інтерактивних кнопок (Капча / Буст) */
+        .action-button {
+            display: none; /* Приховані за замовчуванням */
+            background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 28px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.1s ease;
+        }
+
+        .action-button:active {
+            transform: scale(0.96);
         }
     </style>
 </head>
 <body>
 
-    <!-- Тут буде крутитися анімація -->
     <div id="lottie-container"></div>
     
-    <!-- Тут буде змінюватися текст -->
     <div id="status-text">Завантаження...</div>
+
+    <button id="action-btn" class="action-button" onclick="handleActionClick()">Дія</button>
 
     <script>
         // Ініціалізація Telegram Web App
         const tg = window.Telegram.WebApp;
         tg.expand(); // Розгортаємо додаток на весь екран
 
-        // Читаємо параметр stage з посилання, яке відправив бот
-        const urlParams = new URLSearchParams(window.location.search);
-        const stage = urlParams.get('stage');
-
         const container = document.getElementById('lottie-container');
         const textElement = document.getElementById('status-text');
+        const actionBtn = document.getElementById('action-btn');
+        
         let currentAnimation = null;
+        let currentMode = "processing"; // Поточний стан взаємодії
 
-        // Функція для запуску анімації
+        // Функція для запуску Lottie анімації та зміни тексту
         function playAnimation(fileName, text) {
-            // Якщо вже грає якась анімація - видаляємо її
             if (currentAnimation) {
                 currentAnimation.destroy();
             }
             
-            // Змінюємо текст
             textElement.innerText = text;
             
-            // Запускаємо нову Lottie анімацію
             currentAnimation = lottie.loadAnimation({
                 container: container,
                 renderer: 'svg',
                 loop: true,
                 autoplay: true,
-                path: fileName // Назва файлу
+                path: fileName 
             });
         }
 
-        // Логіка перемикання етапів
-        if (stage === 'welcome') {
-            // 1. Спочатку показуємо "Перевіряю підписки"
-            playAnimation('searching.json', 'Перевіряю підписки...');
+        // ====================================================================
+        // ЗЧИТУВАННЯ ПАРАМЕТРІВ (Підтримуємо і старий stage, і новий startapp)
+        // ====================================================================
+        const urlParams = new URLSearchParams(window.location.search);
+        const legacyStage = urlParams.get('stage');
+        
+        // Новий рядок налаштувань від нашого Python-бота (наприклад: d12345_c1_b1)
+        const startParam = tg.initDataUnsafe?.start_param || "";
+
+        // Визначаємо конфігурацію розіграшу на основі переданих даних
+        const isCaptchaRequired = startParam.includes("_c1");
+        const isBoostOffered = startParam.includes("_b1");
+
+        // Функція успішного завершення (реєстрації)
+        function triggerSuccessRegistration() {
+            actionBtn.style.display = "none";
             
-            // 2. Через 2.5 секунди (2500 мілісекунд) змінюємо на "Вітаю"
+            // Якщо автор увімкнув пропозицію буста
+            if (isBoostOffered) {
+                currentMode = "boost";
+                playAnimation('like.json', 'Вітаю! Ти береш участь! 🎊\n\nБажаєш збільшити шанси в 3 рази?');
+                actionBtn.innerText = "🚀 Забустити канал";
+                actionBtn.style.display = "inline-block";
+                tg.HapticFeedback.notificationOccurred('success');
+            } else {
+                // Стандартний успішний фінал
+                playAnimation('confetti.json', 'Вітаю! Ти береш участь у розіграші 🎊');
+                tg.HapticFeedback.notificationOccurred('success');
+                
+                // Автоматично закриваємо апку через 3 секунди
+                setTimeout(() => { tg.close(); }, 3000);
+            }
+        }
+
+        // Обробник натискання на динамічну кнопку
+        function handleActionClick() {
+            tg.HapticFeedback.impactOccurred('medium');
+            
+            if (currentMode === "captcha") {
+                // Імітація успішного проходження 3D-пазлу/капчі
+                textElement.innerText = "Перевірка капчі...";
+                actionBtn.style.display = "none";
+                
+                setTimeout(() => {
+                    triggerSuccessRegistration();
+                }, 1000);
+                
+            } else if (currentMode === "boost") {
+                // Відкриваємо офіційне вікно буста каналу в Телеграмі
+                // (ID каналу можна витягти з параметра, тут відкриваємо загальне посилання)
+                tg.openTelegramLink("https://t.me/boost/Ranndommo_bot");
+                tg.close();
+            }
+        }
+
+        // ====================================================================
+        // ГОЛОВНА ЛОГІКА ВІДОБРАЖЕННЯ
+        // ====================================================================
+        if (startParam) {
+            // 1. Старт: перевірка умов участi
+            playAnimation('searching.json', 'Перевіряю умови участі...');
+
+            setTimeout(() => {
+                // 2. Якщо потрібна капча — зупиняємось і вимагаємо дії
+                if (isCaptchaRequired) {
+                    currentMode = "captcha";
+                    // Використовуємо файл like.json як тимчасову заглушку для інтерактиву
+                    playAnimation('like.json', '🧩 Склади пазл (Капча), щоб підтвердити, що ти не бот:');
+                    actionBtn.innerText = "✓ Пройти перевірку";
+                    actionBtn.style.display = "inline-block";
+                    tg.HapticFeedback.notificationOccurred('warning');
+                } else {
+                    // Якщо капча не потрібна — одразу реєструємо
+                    triggerSuccessRegistration();
+                }
+            }, 2000);
+
+        } else if (legacyStage === 'welcome') {
+            // Підтримка старих посилань (без параметрів)
+            playAnimation('searching.json', 'Перевіряю підписки...');
             setTimeout(() => {
                 playAnimation('confetti.json', 'Вітаю! Ти береш участь у розіграші 🎊');
-                tg.HapticFeedback.notificationOccurred('success'); // Вібрація успіху
+                tg.HapticFeedback.notificationOccurred('success');
             }, 2500);
 
-        } else if (stage === 'already_in') {
-            // Якщо людина вже бере участь
+        } else if (legacyStage === 'already_in') {
             playAnimation('like.json', 'Ти вже береш участь у розіграші 👍');
 
-        } else if (stage === 'finished') {
-            // Якщо розіграш закінчився
+        } else if (legacyStage === 'finished') {
             playAnimation('indolent evening.json', 'Розіграш завершено 🏆');
 
         } else {
-            // На випадок непередбаченої помилки
-            playAnimation('searching.json', 'Щось пішло не так...');
+            // Базове завантаження, якщо параметрів немає
+            playAnimation('searching.json', 'Завантаження розіграшу...');
         }
     </script>
 
